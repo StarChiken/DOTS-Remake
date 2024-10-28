@@ -833,6 +833,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5cc391f84cab9a64287a3492c7013340, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  dots:
+  - {fileID: 628879358}
   tilemap: {fileID: 385483655}
   floorTile: {fileID: 11400000, guid: 91c629c6c997bed4893e7c748784c2fa, type: 2}
   redGoal: {fileID: 11400000, guid: 3d1945f8996277a42a0f0957f87dec6e, type: 2}
