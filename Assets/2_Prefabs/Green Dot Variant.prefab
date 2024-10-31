@@ -1,0 +1,75 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1001 &143394961403307989
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 64023060320657813, guid: 4dfb33d6beed5924e8ae5f9a127d4a16, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 64023060320657813, guid: 4dfb33d6beed5924e8ae5f9a127d4a16, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 64023060320657813, guid: 4dfb33d6beed5924e8ae5f9a127d4a16, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 64023060320657813, guid: 4dfb33d6beed5924e8ae5f9a127d4a16, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 64023060320657813, guid: 4dfb33d6beed5924e8ae5f9a127d4a16, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 64023060320657813, guid: 4dfb33d6beed5924e8ae5f9a127d4a16, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 64023060320657813, guid: 4dfb33d6beed5924e8ae5f9a127d4a16, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 64023060320657813, guid: 4dfb33d6beed5924e8ae5f9a127d4a16, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 64023060320657813, guid: 4dfb33d6beed5924e8ae5f9a127d4a16, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 64023060320657813, guid: 4dfb33d6beed5924e8ae5f9a127d4a16, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1916934231685417976, guid: 4dfb33d6beed5924e8ae5f9a127d4a16, type: 3}
+      propertyPath: m_Sprite
+      value: 
+      objectReference: {fileID: 21300000, guid: 02794801bd4b9d942bfc6c15b7da193a, type: 3}
+    - target: {fileID: 1925404366882121689, guid: 4dfb33d6beed5924e8ae5f9a127d4a16, type: 3}
+      propertyPath: goalTile
+      value: 
+      objectReference: {fileID: 11400000, guid: 9fd680891ec3e57488b78df2560b399e, type: 2}
+    - target: {fileID: 1925404366882121689, guid: 4dfb33d6beed5924e8ae5f9a127d4a16, type: 3}
+      propertyPath: autoSprite
+      value: 
+      objectReference: {fileID: 21300000, guid: 02794801bd4b9d942bfc6c15b7da193a, type: 3}
+    - target: {fileID: 1925404366882121689, guid: 4dfb33d6beed5924e8ae5f9a127d4a16, type: 3}
+      propertyPath: selectedSprite
+      value: 
+      objectReference: {fileID: 21300000, guid: dd54084f7039ae146b3350d73a1a7497, type: 3}
+    - target: {fileID: 8477768034764355025, guid: 4dfb33d6beed5924e8ae5f9a127d4a16, type: 3}
+      propertyPath: m_Name
+      value: Green Dot Variant
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 4dfb33d6beed5924e8ae5f9a127d4a16, type: 3}

@@ -7,24 +7,19 @@ using UnityEngine.Tilemaps;
 public class LevelManager : MonoBehaviour
 {
     [Header("Dots")]
-    public Dot[] dots;
+    [SerializeField] private Dot[] dots;
     [Range(0, 1f)]
-    public float replayWaitTime;
+    [SerializeField] private float replayWaitTime;
     
     [Header("Tilemap")]
-    public Tilemap tilemap;
-    public TileBase floorTile;
-    public TileBase redGoal;
-    public TileBase blueGoal;
-    public TileBase yellowGoal;
-    public TileBase greenGoal;
+    [SerializeField] private Tilemap tilemap;
+    [SerializeField] private TileBase floorTile;
     
     private bool canMove = false;
-    
+
+    private int maxMoves = 0;
     private int currentRound = 0;
     private int currentMove = 0;
-    
-    private Vector2Int[] goalPositions;
     
     private List<Vector3Int>[] dotReplayPositions;
     
@@ -37,42 +32,6 @@ public class LevelManager : MonoBehaviour
         dotReplayPositions = new List<Vector3Int>[dots.Length];
         for (int i = 0; i < dotReplayPositions.Length; i++)
             dotReplayPositions[i] = new List<Vector3Int>();
-        
-        goalPositions = new Vector2Int[dots.Length];
-        SetGoalPositions();
-    }
-    
-    private void SetGoalPositions()
-    {
-        BoundsInt cellBounds = tilemap.cellBounds;
-        for (int i = cellBounds.size.y; i >= 0; i--)
-        {
-            for (int j = 0; j <  cellBounds.size.x; j++)
-            {
-                Vector2Int pos = new Vector2Int(j + cellBounds.position.x, i + cellBounds.position.y);
-
-                if (!tilemap.HasTile((Vector3Int)pos))
-                    continue;
-                
-                TileBase tile = tilemap.GetTile((Vector3Int)pos);
-                if (tile == redGoal)
-                {
-                    goalPositions[0] = pos;
-                }
-                else if (tile == blueGoal)
-                {
-                    goalPositions[1] = pos;
-                }
-                else if (tile == yellowGoal)
-                {
-                    goalPositions[2] = pos;
-                }
-                else if (tile == greenGoal)
-                {
-                    goalPositions[3] = pos;
-                }
-            }
-        }
     }
 
     private void MoveCurrentDot(Vector3Int moveDir)
@@ -84,7 +43,10 @@ public class LevelManager : MonoBehaviour
             return;
         
         Vector3Int nextPos = (Vector3Int)dots[currentRound].Position + moveDir;
-        if (tilemap.HasTile(nextPos))
+
+        bool validPos = tilemap.HasTile(nextPos) && (tilemap.GetTile(nextPos) == floorTile || tilemap.GetTile(nextPos) == dots[currentRound].GoalTile);
+
+        if (validPos)
         {
             dots[currentRound].TryMoveDot(true, (Vector2Int)moveDir);
             dotReplayPositions[currentRound].Add(moveDir);
@@ -97,6 +59,33 @@ public class LevelManager : MonoBehaviour
             }
             
             currentMove++;
+            
+            if (tilemap.GetTile(nextPos) == dots[currentRound].GoalTile)
+            {
+                print("GOAL REACHED");
+                if (currentRound == dots.Length - 1)
+                {
+                    print("END OF LEVEL");
+                    canMove = false;
+                    // Play End of Level Replay
+                    StartCoroutine(ReplayMoves());
+                }
+                else
+                {
+                    print("NEXT ROUND");
+                
+                    StartCoroutine(ResetDots());
+                
+                    dots[currentRound].SetSelected(false);
+                    dots[currentRound + 1].SetSelected(true);
+
+                    if (currentMove > maxMoves)
+                        maxMoves = currentMove;
+                    
+                    currentMove = 0;
+                    currentRound++;
+                }
+            }
         }
         else
         {
@@ -108,52 +97,26 @@ public class LevelManager : MonoBehaviour
             if (dots[currentRound] == dot)
                 continue;
 
-            if (dots[currentRound].Position == dot.Position)
-            {
-                // Reset Level
-                print("RESET LEVEL");
-                ResetLevel();
-            }
-        }
-        
-        if (dots[currentRound].Position == goalPositions[currentRound])
-        {
-            print("GOAL REACHED");
-            if (currentRound == dots.Length - 1)
-            {
-                print("END OF LEVEL");
-                canMove = false;
-                // Play End of Level Replay
-                StartCoroutine(ReplayMoves());
-            }
-            else
-            {
-                print("NEXT ROUND");
-                
-                StartCoroutine(ResetDots());
-                
-                dots[currentRound].SetSelected(false);
-                dots[currentRound + 1].SetSelected(true);
-                
-                currentMove = 0;
-                currentRound++;
-            }
+            if (dots[currentRound].Position != dot.Position)
+                continue;
+            
+            ResetLevel();
         }
     }
 
     private void ResetLevel()
     {
-        dotReplayPositions = new List<Vector3Int>[dots.Length];
-        for (int i = 0; i < dotReplayPositions.Length; i++)
-        {
-            dotReplayPositions[i] = new List<Vector3Int>();
-            dots[i].SetSelected(false);
-        }
+        print("RESET LEVEL");
         
+        dots[currentRound].SetSelected(false);
+        dots[0].SetSelected(true);
+        
+        maxMoves = 0;
         currentMove = 0;
         currentRound = 0;
         
-        dots[0].SetSelected(true);
+        foreach (var positionList in dotReplayPositions)
+            positionList.Clear();
         
         StartCoroutine(ResetDots());
     }
@@ -162,9 +125,9 @@ public class LevelManager : MonoBehaviour
     {
         canMove = false;
         yield return new WaitForSeconds(replayWaitTime);
-        
-        for (int i = 0; i < currentRound; i++)
-            dots[i].MoveToStartPos();
+
+        foreach (var dot in dots)
+            dot.MoveToStartPos();
         
         yield return new WaitForSeconds(replayWaitTime);
         
@@ -185,7 +148,7 @@ public class LevelManager : MonoBehaviour
         
         yield return new WaitForSeconds(replayWaitTime);
         
-        for (int i = 0; i < currentMove; i++)
+        for (int i = 0; i < maxMoves; i++)
         {
             for (int j = 0; j < dots.Length; j++)
             {
@@ -196,30 +159,26 @@ public class LevelManager : MonoBehaviour
             yield return new WaitForSeconds(replayWaitTime);
         }
         
-        //Load Next Level
+        //TODO: Load Next Level
     }
     
     private void OnUp()
     {
-        print("UP");
         MoveCurrentDot(Vector3Int.up);
     }
     
     private void OnDown()
     {
-        print("DOWN");
         MoveCurrentDot(Vector3Int.down);
     }
     
     private void OnLeft()
     {
-        print("LEFT");
         MoveCurrentDot(Vector3Int.left);
     }
     
     private void OnRight()
     {
-        print("RIGHT");
         MoveCurrentDot(Vector3Int.right);
     }
 }

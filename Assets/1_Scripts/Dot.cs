@@ -1,14 +1,17 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Tilemaps;
 
 public class Dot : MonoBehaviour
 {
-    public Sprite autoSprite;
-    public Sprite selectedSprite;
+    [SerializeField] private TileBase goalTile;
+    [SerializeField] private Sprite autoSprite;
+    [SerializeField] private Sprite selectedSprite;
 
     public bool IsMoving { get; private set; }
     public Vector2Int Position { get; private set; }
+    public TileBase GoalTile { get { return goalTile; } }
 
     private Vector3 startPos;
 
@@ -20,11 +23,6 @@ public class Dot : MonoBehaviour
         
         Position = Vector2Int.RoundToInt(transform.position);
         startPos = transform.position;
-    }
-
-    void Update()
-    {
-        
     }
 
     public void SetSelected(bool isSelected)
@@ -41,22 +39,14 @@ public class Dot : MonoBehaviour
     //* This function will move the character without checking if the move is valid
     public void TryMoveDot(bool isValidMove, Vector2Int direction)
     {
-        // Move Character
-        // If this is the Player Character, Store Position of Character to Replay Positions
-        
         if (isValidMove)
         {
             Position += direction;
-            //transform.position = new Vector3(Position.x, Position.y, 0);
-            print("Can move to: " + Position);
-            // Play Move Animation
             StartCoroutine(MoveDotAnimation((Vector3Int)Position, 0.15f));
         }
         else
         {
-            print("Cannot move to: " + (Position + direction));
-            // Play Bonk Animation
-            StartCoroutine(WallHitEnum((Vector3Int)direction));
+            StartCoroutine(WallBonkAnimation((Vector3Int)direction));
         }
     }
 
@@ -64,10 +54,10 @@ public class Dot : MonoBehaviour
     {
         IsMoving = true;
         float timeElapsed = 0;
-        Vector3 startPos = transform.position;
+        Vector3 beginPos = transform.position;
         while (timeElapsed < moveSeconds)
         {
-            transform.position = Vector3.Lerp(startPos, movePos, timeElapsed / moveSeconds);
+            transform.position = Vector3.Lerp(beginPos, movePos, timeElapsed / moveSeconds);
             timeElapsed += Time.deltaTime;
             yield return null;
         }
@@ -75,30 +65,32 @@ public class Dot : MonoBehaviour
         IsMoving = false;
     }
     
-    IEnumerator WallHitEnum(Vector3Int moveDir)
+    IEnumerator WallBonkAnimation(Vector3Int moveDir)
     {
-        const float wallHitLerpDuration = 0.06f;
+        const float bonkSeconds = 0.06f;
         
         IsMoving = true;
         float timeElapsed = 0;
-        Vector3 startPos = transform.position;
-        Vector3 hitPos = startPos + (Vector3)moveDir * 0.1f;
-        while (timeElapsed < wallHitLerpDuration)
+        
+        Vector3 beginPos = transform.position;
+        Vector3 bonkPos = beginPos + (Vector3)moveDir * 0.1f;
+        
+        while (timeElapsed < bonkSeconds)
         {
-            transform.position = Vector3.Lerp(startPos, hitPos, timeElapsed / wallHitLerpDuration);
+            transform.position = Vector3.Lerp(beginPos, bonkPos, timeElapsed / bonkSeconds);
             timeElapsed += Time.deltaTime;
             yield return null;
         }
         
         timeElapsed = 0;
         
-        while (timeElapsed < wallHitLerpDuration)
+        while (timeElapsed < bonkSeconds)
         {
-            transform.position = Vector3.Lerp(hitPos, startPos, timeElapsed / wallHitLerpDuration);
+            transform.position = Vector3.Lerp(bonkPos, beginPos, timeElapsed / bonkSeconds);
             timeElapsed += Time.deltaTime;
             yield return null;
         }
-        transform.position = startPos;
+        transform.position = beginPos;
         IsMoving = false;
     }
 }
