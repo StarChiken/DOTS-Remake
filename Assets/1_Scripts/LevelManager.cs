@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -7,6 +8,8 @@ public class LevelManager : MonoBehaviour
 {
     [Header("Dots")]
     public Dot[] dots;
+    [Range(0, 1f)]
+    public float replayWaitTime;
     
     [Header("Tilemap")]
     public Tilemap tilemap;
@@ -15,8 +18,11 @@ public class LevelManager : MonoBehaviour
     public TileBase blueGoal;
     public TileBase yellowGoal;
     public TileBase greenGoal;
-
-    private int currentDotIndex = 0;
+    
+    private bool canMove = false;
+    
+    private int currentRound = 0;
+    private int currentMove = 0;
     
     private Vector2Int[] goalPositions;
     
@@ -24,7 +30,14 @@ public class LevelManager : MonoBehaviour
     
     void Start()
     {
+        canMove = true;
+        
+        dots[0].SetSelected(true);
+        
         dotReplayPositions = new List<Vector3Int>[dots.Length];
+        for (int i = 0; i < dotReplayPositions.Length; i++)
+            dotReplayPositions[i] = new List<Vector3Int>();
+        
         goalPositions = new Vector2Int[dots.Length];
         SetGoalPositions();
     }
@@ -62,41 +75,128 @@ public class LevelManager : MonoBehaviour
         }
     }
 
-    void Update()
-    {
-        
-    }
-
     private void MoveCurrentDot(Vector3Int moveDir)
     {
-        Vector3Int nextPos = (Vector3Int)dots[currentDotIndex].Position + moveDir;
-        dots[currentDotIndex].TryMoveDot(tilemap.HasTile(nextPos), (Vector2Int)moveDir);
+        if (!canMove)
+            return;
+
+        if (dots[currentRound].IsMoving)
+            return;
+        
+        Vector3Int nextPos = (Vector3Int)dots[currentRound].Position + moveDir;
+        if (tilemap.HasTile(nextPos))
+        {
+            dots[currentRound].TryMoveDot(true, (Vector2Int)moveDir);
+            dotReplayPositions[currentRound].Add(moveDir);
+
+            for (int i = 0; i < currentRound; i++)
+            {
+                if (currentMove >= dotReplayPositions[i].Count)
+                    continue;
+                dots[i].TryMoveDot(true, (Vector2Int)dotReplayPositions[i][currentMove]);
+            }
+            
+            currentMove++;
+        }
+        else
+        {
+            dots[currentRound].TryMoveDot(false, (Vector2Int)moveDir);
+        }
 
         foreach (var dot in dots)
         {
-            if (dots[currentDotIndex] == dot)
+            if (dots[currentRound] == dot)
                 continue;
 
-            if (dots[currentDotIndex].Position == dot.Position)
+            if (dots[currentRound].Position == dot.Position)
             {
                 // Reset Level
+                print("RESET LEVEL");
+                ResetLevel();
             }
         }
         
-        if (dots[currentDotIndex].Position == goalPositions[currentDotIndex])
+        if (dots[currentRound].Position == goalPositions[currentRound])
         {
             print("GOAL REACHED");
-            if (currentDotIndex == dots.Length - 1)
+            if (currentRound == dots.Length - 1)
             {
                 print("END OF LEVEL");
+                canMove = false;
                 // Play End of Level Replay
-                // Load Next Level
+                StartCoroutine(ReplayMoves());
             }
             else
             {
-                currentDotIndex++;
+                print("NEXT ROUND");
+                
+                StartCoroutine(ResetDots());
+                
+                dots[currentRound].SetSelected(false);
+                dots[currentRound + 1].SetSelected(true);
+                
+                currentMove = 0;
+                currentRound++;
             }
         }
+    }
+
+    private void ResetLevel()
+    {
+        dotReplayPositions = new List<Vector3Int>[dots.Length];
+        for (int i = 0; i < dotReplayPositions.Length; i++)
+        {
+            dotReplayPositions[i] = new List<Vector3Int>();
+            dots[i].SetSelected(false);
+        }
+        
+        currentMove = 0;
+        currentRound = 0;
+        
+        dots[0].SetSelected(true);
+        
+        StartCoroutine(ResetDots());
+    }
+
+    private IEnumerator ResetDots()
+    {
+        canMove = false;
+        yield return new WaitForSeconds(replayWaitTime);
+        
+        for (int i = 0; i < currentRound; i++)
+            dots[i].MoveToStartPos();
+        
+        yield return new WaitForSeconds(replayWaitTime);
+        
+        canMove = true;
+    }
+    
+    private IEnumerator ReplayMoves()
+    {
+        dots[currentRound].SetSelected(false);
+     
+        yield return new WaitForSeconds(replayWaitTime);
+
+        foreach (var dot in dots)
+        {
+            dot.MoveToStartPos();
+            dot.SetSelected(false);
+        }
+        
+        yield return new WaitForSeconds(replayWaitTime);
+        
+        for (int i = 0; i < currentMove; i++)
+        {
+            for (int j = 0; j < dots.Length; j++)
+            {
+                if (i >= dotReplayPositions[j].Count)
+                    continue;
+                dots[j].TryMoveDot(true, (Vector2Int)dotReplayPositions[j][i]);
+            }
+            yield return new WaitForSeconds(replayWaitTime);
+        }
+        
+        //Load Next Level
     }
     
     private void OnUp()
