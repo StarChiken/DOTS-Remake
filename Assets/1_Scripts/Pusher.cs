@@ -9,7 +9,9 @@ public class Pusher : MonoBehaviour
     void Start()
     {
         if (direction == Vector2Int.zero)
-            Debug.LogError("Invalid Push Direction");
+            Debug.LogError("Push Direction Must Be Set");
+        else if (direction.magnitude > 1)
+            Debug.LogError("Push Direction Magnitude Too Large");
     }
 
     public void ActivatePusher()

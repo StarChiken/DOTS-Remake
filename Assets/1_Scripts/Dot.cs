@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -5,6 +6,8 @@ using UnityEngine.Tilemaps;
 
 public class Dot : MonoBehaviour
 {
+    [SerializeField] private float moveSeconds = 0.15f;
+    [SerializeField] private float bonkSeconds = 0.06f;
     [SerializeField] private TileBase goalTile;
     [SerializeField] private Sprite autoSprite;
     [SerializeField] private Sprite selectedSprite;
@@ -13,10 +16,15 @@ public class Dot : MonoBehaviour
     public Vector2Int Position { get; private set; }
     public TileBase GoalTile { get { return goalTile; } }
 
+    public Action ReachedGoal;
+
+    private bool isSelected;
+    private bool reachedGoal;
+
     private Vector3 startPos;
 
-    private Vector2Int pushDirection = Vector2Int.zero;
-    private Vector2Int teleportLocation = Vector2Int.zero;
+    private Pusher pusherScript;
+    private Teleporter teleporterScript;
     
     private SpriteRenderer spriteRenderer;
     
@@ -28,22 +36,41 @@ public class Dot : MonoBehaviour
         startPos = transform.position;
     }
 
-    public void SetSelected(bool isSelected)
+    public void SetSelected(bool _isSelected)
     {
-        spriteRenderer.sprite = isSelected ? selectedSprite : autoSprite;
+        isSelected = _isSelected;
+        spriteRenderer.sprite = _isSelected ? selectedSprite : autoSprite;
     }
     
     public void MoveToStartPos()
     {
         Position = Vector2Int.RoundToInt(startPos);
-        StartCoroutine(MoveDotAnimation((Vector3Int)Position, 0.15f));
+        StartCoroutine(MoveDotAnimation((Vector3Int)Position));
+    }
+
+    private void TeleportDot(Vector2Int teleportPos)
+    {
+        Position = teleportPos;
+        transform.position = new Vector3(Position.x, Position.y, 0);
     }
     
     //* This function will move the character without checking if the move is valid
-    public void MoveDot(Vector2Int direction)
+    public void MoveDot(Vector2Int direction, TileBase nextTile, GameObject nextTileObject)
     {
         Position += direction;
-        StartCoroutine(MoveDotAnimation((Vector3Int)Position, 0.15f));
+        StartCoroutine(MoveDotAnimation((Vector3Int)Position));
+
+        if (nextTile == goalTile)
+        {
+            reachedGoal = true;
+            return;
+        }
+
+        if (nextTileObject == null)
+            return;
+
+        nextTileObject.TryGetComponent<Pusher>(out pusherScript);
+        nextTileObject.TryGetComponent<Teleporter>(out teleporterScript);
     }
 
     public void BonkDot(Vector2Int direction)
@@ -51,17 +78,7 @@ public class Dot : MonoBehaviour
         StartCoroutine(WallBonkAnimation((Vector3Int)direction));
     }
 
-    public void PushDot(Vector2Int direction)
-    {
-        pushDirection = direction;
-    }
-
-    public void TeleportDot(Vector2Int location)
-    {
-        teleportLocation = location;
-    }
-
-    private IEnumerator MoveDotAnimation(Vector3Int movePos, float moveSeconds)
+    private IEnumerator MoveDotAnimation(Vector3Int movePos)
     {
         IsMoving = true;
         float timeElapsed = 0;
@@ -74,21 +91,36 @@ public class Dot : MonoBehaviour
         }
         transform.position = movePos;
 
-        if (pushDirection != Vector2Int.zero)
+        if (pusherScript)
         {
+            pusherScript.ActivatePusher();
+
+            Position += pusherScript.Direction;
+            StartCoroutine(MoveDotAnimation((Vector3Int)Position));
             
+            pusherScript = null;
         }
-        else if (teleportLocation != Vector2Int.zero)
+        else if (teleporterScript)
         {
+            teleporterScript.ActivateTeleporter();
+
+            TeleportDot(teleporterScript.TeleportPosition);
             
+            teleporterScript = null;
         }
+
+        if (isSelected && reachedGoal)
+        {
+            reachedGoal = false;
+
+            ReachedGoal?.Invoke();
+        }
+
         IsMoving = false;
     }
 
     private IEnumerator WallBonkAnimation(Vector3Int moveDir)
-    {
-        const float bonkSeconds = 0.06f;
-        
+    {        
         IsMoving = true;
         float timeElapsed = 0;
         

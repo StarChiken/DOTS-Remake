@@ -6,10 +6,12 @@ public class Teleporter : MonoBehaviour
 {
     [SerializeField] private Teleporter linkedTeleporter;
     
+    public Vector2Int TeleportPosition { get { return Vector2Int.RoundToInt(linkedTeleporter.transform.position); } }
+
     void Start()
     {
         if (!linkedTeleporter)
-            Debug.LogError("No Linked Teleporter Set");
+            Debug.LogError("Linked Teleporter Must Be Set");
     }
 
     public void ActivateTeleporter()
@@ -17,10 +19,5 @@ public class Teleporter : MonoBehaviour
         print("Teleporter Activated");
 
         // Play teleport animation
-    }
-
-    public Vector2Int GetTeleportPosition()
-    {
-        return Vector2Int.RoundToInt(linkedTeleporter.transform.position);
     }
 }
