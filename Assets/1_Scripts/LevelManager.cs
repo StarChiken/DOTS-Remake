@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Tilemaps;
@@ -14,6 +15,8 @@ public class LevelManager : MonoBehaviour
     [Header("Tilemap")]
     [SerializeField] private Tilemap tilemap;
     [SerializeField] private TileBase floorTile;
+    [SerializeField] private TileBase telporterTile;
+    [SerializeField] private TileBase[] pusherTiles;
     
     private bool canMove = false;
 
@@ -44,52 +47,17 @@ public class LevelManager : MonoBehaviour
         
         Vector3Int nextPos = (Vector3Int)dots[currentRound].Position + moveDir;
 
-        bool validPos = tilemap.HasTile(nextPos) && (tilemap.GetTile(nextPos) == floorTile || tilemap.GetTile(nextPos) == dots[currentRound].GoalTile);
-
-        if (validPos)
+        if (tilemap.HasTile(nextPos))
         {
-            dots[currentRound].TryMoveDot(true, (Vector2Int)moveDir);
-            dotReplayPositions[currentRound].Add(moveDir);
-
-            for (int i = 0; i < currentRound; i++)
-            {
-                if (currentMove >= dotReplayPositions[i].Count)
-                    continue;
-                dots[i].TryMoveDot(true, (Vector2Int)dotReplayPositions[i][currentMove]);
-            }
+            TileBase nextTile = tilemap.GetTile(nextPos);
             
-            currentMove++;
+            HandleNextTileChecks(nextTile, nextPos);
             
-            if (tilemap.GetTile(nextPos) == dots[currentRound].GoalTile)
-            {
-                print("GOAL REACHED");
-                if (currentRound == dots.Length - 1)
-                {
-                    print("END OF LEVEL");
-                    canMove = false;
-                    // Play End of Level Replay
-                    StartCoroutine(ReplayMoves());
-                }
-                else
-                {
-                    print("NEXT ROUND");
-                
-                    StartCoroutine(ResetDots());
-                
-                    dots[currentRound].SetSelected(false);
-                    dots[currentRound + 1].SetSelected(true);
-
-                    if (currentMove > maxMoves)
-                        maxMoves = currentMove;
-                    
-                    currentMove = 0;
-                    currentRound++;
-                }
-            }
+            HandleDotMoves(moveDir);
         }
         else
         {
-            dots[currentRound].TryMoveDot(false, (Vector2Int)moveDir);
+            dots[currentRound].BonkDot((Vector2Int)moveDir);
         }
 
         foreach (var dot in dots)
@@ -104,6 +72,67 @@ public class LevelManager : MonoBehaviour
         }
     }
 
+    private void HandleDotMoves(Vector3Int moveDir)
+    {
+        dots[currentRound].MoveDot((Vector2Int)moveDir);
+        dotReplayPositions[currentRound].Add(moveDir);
+
+        for (int i = 0; i < currentRound; i++)
+        {
+            if (currentMove >= dotReplayPositions[i].Count)
+                continue;
+            dots[i].MoveDot((Vector2Int)dotReplayPositions[i][currentMove]);
+        }
+            
+        currentMove++;
+    }
+
+    private void HandleNextTileChecks(TileBase nextTile, Vector3Int nextPos)
+    {
+        if (nextTile == dots[currentRound].GoalTile)
+        {
+            print("GOAL REACHED");
+            if (currentRound == dots.Length - 1)
+            {
+                print("END OF LEVEL");
+                canMove = false;
+                // Play End of Level Replay
+                StartCoroutine(ReplayMoves());
+            }
+            else
+            {
+                print("NEXT ROUND");
+                
+                StartCoroutine(ResetDots());
+                
+                dots[currentRound].SetSelected(false);
+                dots[currentRound + 1].SetSelected(true);
+
+                if (currentMove > maxMoves)
+                    maxMoves = currentMove;
+                    
+                currentMove = 0;
+                currentRound++;
+            }
+        }
+        else if (pusherTiles.Contains(nextTile))
+        {
+            print(dots[currentRound].name + " walked onto pusher");
+
+            Pusher pusherScript = tilemap.GetInstantiatedObject(nextPos).GetComponent<Pusher>();
+            dots[currentRound].PushDot(pusherScript.Direction);
+            pusherScript.ActivatePusher();
+        }
+        else if (nextTile == telporterTile)
+        {
+            print(dots[currentRound].name + " entered teleporter");
+            
+            Teleporter teleporterScript = tilemap.GetInstantiatedObject(nextPos).GetComponent<Teleporter>();
+            dots[currentRound].TeleportDot(teleporterScript.GetTeleportPosition());
+            teleporterScript.ActivateTeleporter();
+        }
+    }
+    
     private void ResetLevel()
     {
         print("RESET LEVEL");
@@ -154,7 +183,7 @@ public class LevelManager : MonoBehaviour
             {
                 if (i >= dotReplayPositions[j].Count)
                     continue;
-                dots[j].TryMoveDot(true, (Vector2Int)dotReplayPositions[j][i]);
+                dots[j].MoveDot((Vector2Int)dotReplayPositions[j][i]);
             }
             yield return new WaitForSeconds(replayWaitTime);
         }

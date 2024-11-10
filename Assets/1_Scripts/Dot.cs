@@ -15,6 +15,9 @@ public class Dot : MonoBehaviour
 
     private Vector3 startPos;
 
+    private Vector2Int pushDirection = Vector2Int.zero;
+    private Vector2Int teleportLocation = Vector2Int.zero;
+    
     private SpriteRenderer spriteRenderer;
     
     void Start()
@@ -37,20 +40,28 @@ public class Dot : MonoBehaviour
     }
     
     //* This function will move the character without checking if the move is valid
-    public void TryMoveDot(bool isValidMove, Vector2Int direction)
+    public void MoveDot(Vector2Int direction)
     {
-        if (isValidMove)
-        {
-            Position += direction;
-            StartCoroutine(MoveDotAnimation((Vector3Int)Position, 0.15f));
-        }
-        else
-        {
-            StartCoroutine(WallBonkAnimation((Vector3Int)direction));
-        }
+        Position += direction;
+        StartCoroutine(MoveDotAnimation((Vector3Int)Position, 0.15f));
     }
 
-    IEnumerator MoveDotAnimation(Vector3Int movePos, float moveSeconds)
+    public void BonkDot(Vector2Int direction)
+    {
+        StartCoroutine(WallBonkAnimation((Vector3Int)direction));
+    }
+
+    public void PushDot(Vector2Int direction)
+    {
+        pushDirection = direction;
+    }
+
+    public void TeleportDot(Vector2Int location)
+    {
+        teleportLocation = location;
+    }
+
+    private IEnumerator MoveDotAnimation(Vector3Int movePos, float moveSeconds)
     {
         IsMoving = true;
         float timeElapsed = 0;
@@ -62,10 +73,19 @@ public class Dot : MonoBehaviour
             yield return null;
         }
         transform.position = movePos;
+
+        if (pushDirection != Vector2Int.zero)
+        {
+            
+        }
+        else if (teleportLocation != Vector2Int.zero)
+        {
+            
+        }
         IsMoving = false;
     }
-    
-    IEnumerator WallBonkAnimation(Vector3Int moveDir)
+
+    private IEnumerator WallBonkAnimation(Vector3Int moveDir)
     {
         const float bonkSeconds = 0.06f;
         
