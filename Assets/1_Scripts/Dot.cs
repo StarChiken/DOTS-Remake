@@ -8,6 +8,8 @@ public class Dot : MonoBehaviour
 {
     [SerializeField] private float moveSeconds = 0.15f;
     [SerializeField] private float bonkSeconds = 0.06f;
+    [SerializeField] private float pushWaitSeconds = 0.15f;
+    [SerializeField] private float teleportWaitSeconds = 0.15f;
     [SerializeField] private TileBase goalTile;
     [SerializeField] private Sprite autoSprite;
     [SerializeField] private Sprite selectedSprite;
@@ -17,12 +19,14 @@ public class Dot : MonoBehaviour
     public TileBase GoalTile { get { return goalTile; } }
 
     public Action ReachedGoal;
-
-    private bool isSelected;
+    
     private bool reachedGoal;
+    private bool isSelected;
 
     private Vector3 startPos;
 
+    private LevelManager levelManager;
+    
     private Pusher pusherScript;
     private Teleporter teleporterScript;
     
@@ -31,6 +35,7 @@ public class Dot : MonoBehaviour
     void Start()
     {
         spriteRenderer = GetComponent<SpriteRenderer>();
+        levelManager = FindFirstObjectByType<LevelManager>();
         
         Position = Vector2Int.RoundToInt(transform.position);
         startPos = transform.position;
@@ -58,8 +63,9 @@ public class Dot : MonoBehaviour
     public void MoveDot(Vector2Int direction, TileBase nextTile, GameObject nextTileObject)
     {
         Position += direction;
-        StartCoroutine(MoveDotAnimation((Vector3Int)Position));
 
+        StartCoroutine(MoveDotAnimation((Vector3Int)Position));
+        
         if (nextTile == goalTile)
         {
             reachedGoal = true;
@@ -67,7 +73,11 @@ public class Dot : MonoBehaviour
         }
 
         if (nextTileObject == null)
+        {
+            pusherScript = null;
+            teleporterScript = null;
             return;
+        }
 
         nextTileObject.TryGetComponent<Pusher>(out pusherScript);
         nextTileObject.TryGetComponent<Teleporter>(out teleporterScript);
@@ -90,33 +100,35 @@ public class Dot : MonoBehaviour
             yield return null;
         }
         transform.position = movePos;
-
-        if (pusherScript)
+        IsMoving = false;
+        
+        
+        if (teleporterScript)
         {
-            pusherScript.ActivatePusher();
-
-            Position += pusherScript.Direction;
-            StartCoroutine(MoveDotAnimation((Vector3Int)Position));
+            yield return new WaitForSeconds(teleportWaitSeconds);
             
-            pusherScript = null;
-        }
-        else if (teleporterScript)
-        {
             teleporterScript.ActivateTeleporter();
 
             TeleportDot(teleporterScript.TeleportPosition);
+        }
+        
+        if (!isSelected)
+            yield break;
+        
+        if (pusherScript)
+        {
+            yield return new WaitForSeconds(pushWaitSeconds);
             
-            teleporterScript = null;
+            pusherScript.ActivatePusher();
+            
+            levelManager.ForceInput((Vector3Int)pusherScript.Direction);
         }
 
-        if (isSelected && reachedGoal)
+        if (reachedGoal)
         {
             reachedGoal = false;
-
             ReachedGoal?.Invoke();
         }
-
-        IsMoving = false;
     }
 
     private IEnumerator WallBonkAnimation(Vector3Int moveDir)

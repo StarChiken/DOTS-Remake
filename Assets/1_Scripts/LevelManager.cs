@@ -11,12 +11,14 @@ public class LevelManager : MonoBehaviour
     [Header("Dots")]
     [SerializeField] private Dot[] dots;
     [Range(0, 1f)]
+    [SerializeField] private float resetWaitSeconds;
+    [Range(0, 1f)]
     [SerializeField] private float replayWaitSeconds;
-    
+
     [Header("Assignment")]
     [SerializeField] private Tilemap tilemap;
     
-    private bool canMove = false;
+    private bool isResetting = false;
 
     private int maxMoves = 0;
     private int currentRound = 0;
@@ -26,46 +28,44 @@ public class LevelManager : MonoBehaviour
     
     void Start()
     {
-        canMove = true;
-        
         dots[0].SetSelected(true);
+        dots[0].ReachedGoal += HandleReachedGoalEvent;
         
         dotReplayPositions = new List<Vector3Int>[dots.Length];
         for (int i = 0; i < dots.Length; i++)
         {
             dotReplayPositions[i] = new List<Vector3Int>();
-            dots[i].ReachedGoal += HandleReachedGoalEvent;
         }
     }
 
     private void MoveAllDots(Vector3Int moveDir)
     {
-        if (!canMove)
+        if (isResetting)
             return;
 
         if (dots[currentRound].IsMoving)
             return;
 
         Vector3Int nextPos = (Vector3Int)dots[currentRound].Position + moveDir;
-        
-        if (tilemap.HasTile(nextPos))
-        {
-            MoveCurrentDot(moveDir, nextPos);
 
-            for (int i = 0; i < currentRound; i++)
-            {
-                if (currentMove >= dotReplayPositions[i].Count)
-                    continue;
-
-                MoveAutoDot(i);
-            }
-
-            currentMove++;
-        }
-        else
+        TileBase nextTile = tilemap.GetTile(nextPos);
+        if (!tilemap.HasTile(nextPos) || (nextTile.name.Contains("Goal") && nextTile != dots[currentRound].GoalTile))
         {
             dots[currentRound].BonkDot((Vector2Int)moveDir);
+            return;
         }
+        
+        MoveCurrentDot(moveDir, nextPos);
+
+        for (int i = 0; i < currentRound; i++)
+        {
+            if (currentMove >= dotReplayPositions[i].Count)
+                continue;
+
+            MoveAutoDot(i);
+        }
+
+        currentMove++;
 
         //* Checks if the player moved dot into another dot & resets level if they did
         foreach (var dot in dots)
@@ -107,6 +107,9 @@ public class LevelManager : MonoBehaviour
         dots[currentRound].SetSelected(false);
         dots[0].SetSelected(true);
         
+        dots[currentRound].ReachedGoal -= HandleReachedGoalEvent;
+        dots[0].ReachedGoal += HandleReachedGoalEvent;
+        
         maxMoves = 0;
         currentMove = 0;
         currentRound = 0;
@@ -119,27 +122,28 @@ public class LevelManager : MonoBehaviour
 
     private IEnumerator ResetDots()
     {
-        canMove = false;
-        yield return new WaitForSeconds(replayWaitSeconds);
+        isResetting = true;
+        yield return new WaitForSeconds(resetWaitSeconds);
 
         foreach (var dot in dots)
             dot.MoveToStartPos();
         
-        yield return new WaitForSeconds(replayWaitSeconds);
+        yield return new WaitForSeconds(resetWaitSeconds);
         
-        canMove = true;
+        isResetting = false;
     }
     
     private IEnumerator ReplayMoves()
     {
         dots[currentRound].SetSelected(false);
-     
+        
         yield return new WaitForSeconds(replayWaitSeconds);
 
         foreach (var dot in dots)
         {
             dot.MoveToStartPos();
             dot.SetSelected(false);
+            dot.ReachedGoal -= HandleReachedGoalEvent;
         }
         
         yield return new WaitForSeconds(replayWaitSeconds);
@@ -178,25 +182,34 @@ public class LevelManager : MonoBehaviour
         {
             print("END OF LEVEL");
 
-            canMove = false;
+            isResetting = true;
 
             StartCoroutine(ReplayMoves());
         }
-        else
+        else if (!isResetting)
         {
             print("NEXT ROUND");
-
-            StartCoroutine(ResetDots());
-
+            
             dots[currentRound].SetSelected(false);
             dots[currentRound + 1].SetSelected(true);
-
+            
+            dots[currentRound].ReachedGoal -= HandleReachedGoalEvent;
+            dots[currentRound + 1].ReachedGoal += HandleReachedGoalEvent;
+            
             if (currentMove > maxMoves)
                 maxMoves = currentMove;
 
             currentMove = 0;
             currentRound++;
+            
+            StartCoroutine(ResetDots());
         }
+    }
+
+    public void ForceInput(Vector3Int moveDir)
+    {
+        MoveAllDots(moveDir);
+        print("Input Forced: " + moveDir);
     }
 
     #region UNITY_INPUT_SYSTEM_EVENTS

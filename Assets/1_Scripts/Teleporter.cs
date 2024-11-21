@@ -10,6 +10,21 @@ public class Teleporter : MonoBehaviour
 
     void Start()
     {
+        Teleporter[] teleporters = FindObjectsByType<Teleporter>(FindObjectsSortMode.InstanceID);
+
+        print("size: " + teleporters.Length);
+        
+        foreach (var teleporter in teleporters)
+        {
+            if (teleporter == this)
+                continue;
+
+            if (teleporter.name == this.name)
+            {
+                linkedTeleporter = teleporter;
+            }
+        }
+        
         if (!linkedTeleporter)
             Debug.LogError("Linked Teleporter Must Be Set");
     }
