@@ -96,6 +96,13 @@ public class LevelManager : MonoBehaviour
 
         TileBase autoNextTile = tilemap.GetTile(autoNextPos);
         GameObject autoNextTileObject = tilemap.GetInstantiatedObject(autoNextPos);
+        if (autoNextTileObject != null)
+        {
+            if (autoNextTileObject.TryGetComponent<Pusher>(out Pusher pusherScript))
+                pusherScript.ActivatePusher();
+            else if (autoNextTileObject.TryGetComponent<Teleporter>(out Teleporter teleporterScript))
+                teleporterScript.ActivateTeleporter();
+        }
 
         dots[i].MoveDot((Vector2Int)autoMoveDir, autoNextTile, autoNextTileObject);
     }
